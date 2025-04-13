@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Interactive Fertilizer Bot</title>
+    <style>
+        body {
+            background-color: #cfd8e4;
+            font-family: Arial, sans-serif;
+        }
+        .chat-container {
+            width: 400px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+        .chat-box {
+            height: 350px;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 90%;
+        }
+        .bot {
+            background-color: #e0ecff;
+            align-self: flex-start;
+        }
+        .user {
+            background-color: #d1ffd6;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .chat-input {
+            display: flex;
+            margin-top: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+        }
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background-color: #2979ff;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-box" id="chatBox">
+        <div class="message bot">🌾 Hello! I'm your Fertilizer Prediction Assistant.</div>
+        <div class="message bot">🌱 Which crop are you growing?</div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Type here..." />
+        <button id="sendButton">Send</button>
+    </div>
+</div>
+
+<script>
+  const chatBox = document.getElementById("chatBox");
+  const userInput = document.getElementById("userInput");
+  const sendButton = document.getElementById("sendButton");
+
+  const apiKey = "YOUR_API_KEY"; // Replace with your actual API key
+
+  let state = "askCrop";
+  let currentCrop = "";
+  let currentArea = "";
+  let currentKg = "";
+  let conversationHistory = [
+      { role: "model", parts: [{ text: "🌾 Hello! I'm your Fertilizer Prediction Assistant." }] },
+      { role: "model", parts: [{ text: "🌱 Which crop are you growing?" }] }
+  ];
+
+  function appendMessage(sender, text) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+      msg.innerHTML = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // Mock fertilizer prediction based on crop, area, and weight
+  function getFertilizerRecommendation(crop, area, weight) {
+      // Replace this with your actual prediction logic
+      const cropFertilizerRecommendations = {
+          "wheat": 100, // kg per acre for wheat
+          "rice": 120,  // kg per acre for rice
+          "corn": 150   // kg per acre for corn
+      };
+
+      // If crop is found in the list, calculate the fertilizer amount needed
+      if (cropFertilizerRecommendations[crop.toLowerCase()]) {
+          const fertilizerPerAcre = cropFertilizerRecommendations[crop.toLowerCase()];
+          const totalFertilizer = fertilizerPerAcre * parseFloat(area);
+          return totalFertilizer.toFixed(2); // Returns total fertilizer in kg
+      } else {
+          return "⚠️ Fertilizer recommendation not available for this crop.";
+      }
+  }
+
+  async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      appendMessage("user", text);
+      userInput.value = "";
+
+      if (state === "askCrop") {
+          currentCrop = text;
+          state = "askArea";
+          appendMessage("bot", "📏 How many acres is it planted in?");
+          return;
+      }
+
+      if (state === "askArea") {
+          currentArea = text;
+          state = "askKg";
+          appendMessage("bot", "⚖️ How much in kilograms (kg)?");
+          return;
+      }
+
+      if (state === "askKg") {
+          currentKg = text;
+          state = "done";
+
+          const finalPrompt = `Crop: ${currentCrop}\nArea: ${currentArea} acres\nWeight: ${currentKg} kg`;
+          conversationHistory.push({ role: "user", parts: [{ text: finalPrompt }] });
+
+          // Get fertilizer recommendation
+          const fertilizerAmount = getFertilizerRecommendation(currentCrop, currentArea, currentKg);
+
+          const reply = `🌾 Fertilizer recommendation for ${currentCrop}:\nYou need approximately ${fertilizerAmount} kg of fertilizer for ${currentArea} acres.`;
+          
+          appendMessage("bot", reply);
+          conversationHistory.push({ role: "model", parts: [{ text: reply }] });
+
+          // Add Thank You message
+          appendMessage("bot", "🙏 Thank you for using the Fertilizer Prediction Assistant!");
+
+          // After Thank You, ask for the next crop
+          state = "askCrop";
+          setTimeout(() => {
+              appendMessage("bot", "🌱 Which crop are you growing next?");
+          }, 2000);  // Delay for 2 seconds before asking for a new crop
+          return;
+      }
+  }
+
+  sendButton.addEventListener("click", sendMessage);
+  userInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") sendMessage();
+  });
+</script>
